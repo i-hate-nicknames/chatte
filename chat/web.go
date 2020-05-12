@@ -1,4 +1,4 @@
-package web
+package chat
 
 import (
 	"log"
@@ -13,7 +13,7 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
-func StartApp() {
+func StartApp(server *Server) {
 	r := gin.Default()
 	r.LoadHTMLGlob("static/templates/*")
 	r.Static("/assets", "./static/assets")
@@ -28,22 +28,7 @@ func StartApp() {
 			log.Println(err)
 			return
 		}
-		go handleWebsocketConn(conn)
+		go server.handleConn(conn)
 	})
 	r.Run(":8080")
-}
-
-func handleWebsocketConn(conn *websocket.Conn) {
-	for {
-		messageType, msg, err := conn.ReadMessage()
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		log.Println("Client send us a message: ", string(msg))
-		if err := conn.WriteMessage(messageType, msg); err != nil {
-			log.Println(err)
-			return
-		}
-	}
 }

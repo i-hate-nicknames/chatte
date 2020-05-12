@@ -1,9 +1,11 @@
 package main
 
 import (
-	"github.com/i-hate-nicknames/chatte/web"
+	"github.com/i-hate-nicknames/chatte/chat"
 )
 
 func main() {
-	web.StartApp()
+	server := chat.MakeServer()
+	go server.Run()
+	chat.StartApp(server)
 }
