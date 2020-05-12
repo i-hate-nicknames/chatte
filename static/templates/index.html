@@ -4,9 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Web sockets ftw</title>
-    <script src="/assets/scripts/websock.js"></script>
 </head>
 <body>
-    <p>Hello, {{ .name }}</p>
+    <div class="chat">
+        <div class="message-log">
+        </div>
+        <textarea name="" id="user-input" cols="30" rows="10"></textarea>
+        <button id="send" disabled>send</button>
+    </div>
+    <script src="/assets/scripts/websock.js"></script>
 </body>
 </html>
