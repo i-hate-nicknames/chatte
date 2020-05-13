@@ -10,9 +10,17 @@ let state = {
 
 function InitSocket(state) {
     let sock = new WebSocket(wsAddr);
-    sock.onopen = function (event) {
+    sock.onopen = () => {
         state.initialized = true;
+        sock.onmessage = (event) => {
+            addMessage(event.data)
+        }
+        sock.onclose = () => {
+            console.log("Server closed connection");
+            state.sendBtn.setAttribute("disabled", "disabled");
+        }
     }
+    
     state.sock = sock;
 }
 
@@ -22,6 +30,12 @@ function initDom() {
     state.userInputArea = document.getElementById("user-input");
     state.sendBtn.removeAttribute("disabled");
     state.sendBtn.onclick = sendMessage;
+}
+
+function addMessage(text) {
+    let msgElem = document.createElement('p');
+    msgElem.innerHTML = text;
+    state.messageLog.appendChild(msgElem);
 }
 
 function sendMessage() {
@@ -36,7 +50,7 @@ function sendMessage() {
 
 function StartApp() {
     initDom();
-    InitSocket(state)
+    InitSocket(state);
 }
 
 StartApp();
