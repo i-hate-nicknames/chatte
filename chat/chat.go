@@ -8,8 +8,10 @@ import (
 )
 
 type Client struct {
-	in  chan<- string
-	out chan string
+	in       chan<- string
+	out      chan string
+	done     chan struct{}
+	isActive bool
 }
 
 type Server struct {
@@ -20,7 +22,8 @@ type Server struct {
 
 func MakeClient(in chan<- string) *Client {
 	out := make(chan string, 0)
-	return &Client{in: in, out: out}
+	done := make(chan struct{}, 0)
+	return &Client{in: in, out: out, done: done}
 }
 
 func MakeServer() *Server {
@@ -33,7 +36,13 @@ func (s *Server) Run() {
 	for {
 		msg := <-s.in
 		for _, client := range s.clients {
-			client.out <- msg
+			select {
+			case client.out <- msg:
+				continue
+			case <-client.done:
+				// todo: mark client for deletion
+				continue
+			}
 		}
 	}
 }
@@ -70,6 +79,7 @@ func (c *Client) writeMessages(conn *websocket.Conn) {
 		log.Println("Sending back to client", msg)
 		err := conn.WriteMessage(websocket.TextMessage, []byte(msg))
 		if err != nil {
+			close(c.done)
 			log.Println(err)
 			return
 		}
