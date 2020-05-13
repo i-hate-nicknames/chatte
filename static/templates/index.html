@@ -4,13 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Web sockets ftw</title>
+    <link rel="stylesheet" href="/assets/styles/styles.css">
 </head>
 <body>
     <div class="chat">
-        <div id="message-log">
+        <div class="message-log" id="message-log">
         </div>
-        <textarea name="" id="user-input" cols="30" rows="10"></textarea>
-        <button id="send" disabled>send</button>
+        <div class="user-input">
+            <textarea id="user-input"></textarea>
+        </div>
+        
+        <button class="send" id="send" disabled>send</button>
     </div>
     <script src="/assets/scripts/websock.js"></script>
 </body>

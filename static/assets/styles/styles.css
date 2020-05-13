@@ -1,0 +1,38 @@
+body {
+    margin: 0;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+.chat {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    padding: 10px;
+}
+
+.chat .message-log {
+    flex-basis: 100%;
+}
+
+.chat .message-log p {
+    margin: 0 10px 0;
+}
+
+.chat .user-input {
+    height: 50px;
+    border: 1px solid #444;
+}
+
+.chat .user-input textarea {
+    resize: none;
+    border: none;
+    width: 100%;
+    height: 100%;
+}
+
+.chat .user-input textarea:focus {
+    outline: none;
+}
