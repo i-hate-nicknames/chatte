@@ -2,7 +2,6 @@ package chat
 
 import (
 	"log"
-	"sync"
 
 	"github.com/gorilla/websocket"
 )
@@ -14,45 +13,10 @@ type Client struct {
 	isActive bool
 }
 
-type Server struct {
-	clients []*Client
-	mux     sync.Mutex
-	in      chan string
-}
-
 func MakeClient(in chan<- string) *Client {
 	out := make(chan string, 0)
 	done := make(chan struct{}, 0)
 	return &Client{in: in, out: out, done: done}
-}
-
-func MakeServer() *Server {
-	in := make(chan string, 10)
-	clients := make([]*Client, 0)
-	return &Server{in: in, clients: clients}
-}
-
-func (s *Server) Run() {
-	for {
-		msg := <-s.in
-		for _, client := range s.clients {
-			select {
-			case client.out <- msg:
-				continue
-			case <-client.done:
-				// todo: mark client for deletion
-				continue
-			}
-		}
-	}
-}
-
-func (s *Server) handleConn(conn *websocket.Conn) {
-	s.mux.Lock()
-	defer s.mux.Unlock()
-	client := MakeClient(s.in)
-	client.handle(conn)
-	s.clients = append(s.clients, client)
 }
 
 func (c *Client) handle(conn *websocket.Conn) {
