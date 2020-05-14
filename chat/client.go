@@ -10,13 +10,14 @@ type Client struct {
 	in       chan<- string
 	out      chan string
 	done     chan struct{}
+	username string
 	isActive bool
 }
 
-func MakeClient(in chan<- string) *Client {
+func MakeClient(in chan<- string, username string) *Client {
 	out := make(chan string, 0)
 	done := make(chan struct{}, 0)
-	return &Client{in: in, out: out, done: done}
+	return &Client{in: in, out: out, done: done, username: username}
 }
 
 func (c *Client) handle(conn *websocket.Conn) {

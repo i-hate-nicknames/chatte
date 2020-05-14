@@ -1,20 +1,22 @@
 package chat
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/gorilla/websocket"
 )
 
 type Server struct {
-	clients []*Client
-	mux     sync.Mutex
-	in      chan string
+	clients    map[string]*Client
+	mux        sync.Mutex
+	in         chan string
+	nextUserID int
 }
 
 func MakeServer() *Server {
 	in := make(chan string, 10)
-	clients := make([]*Client, 0)
+	clients := make(map[string]*Client, 0)
 	return &Server{in: in, clients: clients}
 }
 
@@ -36,7 +38,9 @@ func (s *Server) Run() {
 func (s *Server) handleConn(conn *websocket.Conn) {
 	s.mux.Lock()
 	defer s.mux.Unlock()
-	client := MakeClient(s.in)
+	s.nextUserID++
+	username := fmt.Sprintf("User%d", s.nextUserID)
+	client := MakeClient(s.in, username)
 	client.handle(conn)
-	s.clients = append(s.clients, client)
+	s.clients[username] = client
 }
