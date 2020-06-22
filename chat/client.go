@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/gorilla/websocket"
+	"github.com/i-hate-nicknames/chatte/protocol"
 )
 
 // Client represents a connected remote client
@@ -42,13 +43,19 @@ func (c *Client) handle(conn *websocket.Conn) {
 func (c *Client) readMessages(conn *websocket.Conn) {
 	for {
 		// todo handle different message types
-		_, msg, err := conn.ReadMessage()
+		_, msgData, err := conn.ReadMessage()
 		if err != nil {
 			log.Println(err)
 			return
 		}
+		msg, err := protocol.Unmarshal(msgData)
+		if err != nil {
+			log.Println("Malformed message:", msg)
+			continue
+		}
+
 		log.Println("Received", msg)
-		c.in <- string(msg)
+		c.in <- string(msg.Type)
 	}
 }
 

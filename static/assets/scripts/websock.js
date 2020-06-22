@@ -1,4 +1,6 @@
 const wsAddr = 'ws://localhost:8080/websock';
+const MSG_QUIT = "QUIT";
+const MSG_BROADCAST = "BCAST";
 
 // wrapper object around chat state and chat dom elements
 let state = {
@@ -8,6 +10,13 @@ let state = {
     userInputArea: null,
     initialized: false,
 };
+
+function makeMessage(type, payload) {
+    return {
+        "type": type,
+        "payload": payload ?? {}
+    }
+}
 
 function initSocket(state) {
     let sock = new WebSocket(wsAddr);
@@ -44,8 +53,9 @@ function sendMessage() {
     if (!state.initialized || text === "") {
         return;
     }
-    console.log("sending " + text);
-    state.sock.send(text);
+    const message = JSON.stringify(makeMessage(MSG_BROADCAST, text));
+    console.log("sending " + message);
+    state.sock.send(message);
     state.userInputArea.value = "";
 }
 
