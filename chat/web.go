@@ -22,6 +22,8 @@ func StartApp(server *Server) {
 			"name": "user",
 		})
 	})
+	// websock will upgrade client connection to websocket and
+	// setup a client representation for remote client
 	r.GET("/websock", func(c *gin.Context) {
 		conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 		if err != nil {

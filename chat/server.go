@@ -7,9 +7,13 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// Server represents a chat server that holds clients and handles
+// all client interaction
 type Server struct {
-	clients    map[string]*Client
-	mux        sync.Mutex
+	// mapping of username to client structures
+	clients map[string]*Client
+	mux     sync.Mutex
+	// incoming messages from all clients
 	in         chan string
 	nextUserID int
 }
@@ -20,6 +24,8 @@ func MakeServer() *Server {
 	return &Server{in: in, clients: clients}
 }
 
+// Run server, listening to client messages
+// and broadcasting this message to all connected clients
 func (s *Server) Run() {
 	for {
 		msg := <-s.in
@@ -35,6 +41,8 @@ func (s *Server) Run() {
 	}
 }
 
+// handle a newly connected client: create new client
+// object and assign it a username
 func (s *Server) handleConn(conn *websocket.Conn) {
 	s.mux.Lock()
 	defer s.mux.Unlock()

@@ -6,12 +6,21 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// Client represents a connected remote client
+// All interaction happens through the server and is written in corresponding in and out
+// channels.
+// When server needs to send the remote client something it puts message on
+// the client out channel
+// When remote client sends a message it gets stored in the in channel, that will
+// eventually be read by the server
 type Client struct {
-	in       chan<- string
-	out      chan string
+	// incoming messages from the remote client
+	in chan<- string
+	// outgoing messages that should be sent to remote client
+	out chan string
+	// this channel is closed when remote client is disconnected
 	done     chan struct{}
 	username string
-	isActive bool
 }
 
 func MakeClient(in chan<- string, username string) *Client {
@@ -20,11 +29,16 @@ func MakeClient(in chan<- string, username string) *Client {
 	return &Client{in: in, out: out, done: done, username: username}
 }
 
+// Handle given connection, starting a client session. Will
+// start reading messages from the client as well as sending
+// messages back
 func (c *Client) handle(conn *websocket.Conn) {
 	go c.readMessages(conn)
 	go c.writeMessages(conn)
 }
 
+// Read messages from the remote client, putting them on the
+// in channel
 func (c *Client) readMessages(conn *websocket.Conn) {
 	for {
 		// todo handle different message types
@@ -38,6 +52,7 @@ func (c *Client) readMessages(conn *websocket.Conn) {
 	}
 }
 
+// Send messages, posted to this client instance to the remote client
 func (c *Client) writeMessages(conn *websocket.Conn) {
 	for {
 		msg := <-c.out

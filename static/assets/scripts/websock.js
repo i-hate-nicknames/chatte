@@ -1,5 +1,6 @@
 const wsAddr = 'ws://localhost:8080/websock';
 
+// wrapper object around chat state and chat dom elements
 let state = {
     sock: null,
     sendBtn: null,
@@ -8,7 +9,7 @@ let state = {
     initialized: false,
 };
 
-function InitSocket(state) {
+function initSocket(state) {
     let sock = new WebSocket(wsAddr);
     sock.onopen = () => {
         state.initialized = true;
@@ -50,7 +51,7 @@ function sendMessage() {
 
 function StartApp() {
     initDom();
-    InitSocket(state);
+    initSocket(state);
 }
 
 StartApp();
