@@ -28,14 +28,11 @@ func MakeServer() *Server {
 // and broadcasting this message to all connected clients
 func (s *Server) Run() {
 	for {
-		msg := <-s.in
+		message := <-s.in
 		for _, client := range s.clients {
-			select {
-			case client.out <- msg:
-				continue
-			case <-client.done:
+			ok := client.SendMessage(message)
+			if !ok {
 				// todo: mark client for deletion
-				continue
 			}
 		}
 	}

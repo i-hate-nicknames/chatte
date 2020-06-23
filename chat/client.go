@@ -18,17 +18,17 @@ type Client struct {
 	// incoming messages from the remote client
 	in chan<- string
 	// outgoing messages that should be sent to remote client
-	out chan string
-	// this channel is closed when remote client is disconnected
+	out      chan string
 	done     chan struct{}
 	username string
 	conn     *websocket.Conn
 }
 
+// MakeClient with given server channel, username and connection
 func MakeClient(in chan<- string, username string, conn *websocket.Conn) *Client {
 	out := make(chan string, 0)
 	done := make(chan struct{}, 0)
-	return &Client{in: in, out: out, done: done, username: username, conn: conn}
+	return &Client{in: in, out: out, username: username, conn: conn, done: done}
 }
 
 // Start a client session. Will start reading messages from the client as well as sending
@@ -38,14 +38,29 @@ func (c *Client) Start() {
 	go c.writeMessages()
 }
 
-// Read messages from the remote client, putting them on the
-// in channel
+// SendMessage sends message to the client. Return running status
+// of the client at the moment of running. The return status signifies that
+// the message has been scheduled, not the delivery status. Disconnected client
+// will eventually start to return false upon calling this method
+// This method is supposed to be called from the server goroutine
+func (c *Client) SendMessage(message string) bool {
+	select {
+	case c.out <- message:
+		return true
+	case <-c.done:
+		return false
+	}
+}
+
+// Read messages from the remote client and put on the server's incoming
+// messages channel
 func (c *Client) readMessages() {
 	for {
 		// todo handle different message types
 		_, msgData, err := c.conn.ReadMessage()
 		if err != nil {
 			log.Println(err)
+			close(c.done)
 			return
 		}
 		msg, err := protocol.Unmarshal(msgData)
@@ -59,15 +74,19 @@ func (c *Client) readMessages() {
 	}
 }
 
-// Send messages, posted to this client instance to the remote client
+// Read messages posted to this client instance and send them to the remote client
 func (c *Client) writeMessages() {
 	for {
-		msg := <-c.out
-		log.Println("Sending back to client", msg)
-		err := c.conn.WriteMessage(websocket.TextMessage, []byte(msg))
-		if err != nil {
-			close(c.done)
-			log.Println(err)
+		select {
+		case msg := <-c.out:
+			log.Println("Sending back to client", msg)
+			err := c.conn.WriteMessage(websocket.TextMessage, []byte(msg))
+			if err != nil {
+				log.Println(err)
+				close(c.done)
+				return
+			}
+		case <-c.done:
 			return
 		}
 	}
