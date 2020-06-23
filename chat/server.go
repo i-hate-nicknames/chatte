@@ -48,7 +48,7 @@ func (s *Server) handleConn(conn *websocket.Conn) {
 	defer s.mux.Unlock()
 	s.nextUserID++
 	username := fmt.Sprintf("User%d", s.nextUserID)
-	client := MakeClient(s.in, username)
-	client.handle(conn)
+	client := MakeClient(s.in, username, conn)
+	client.Start()
 	s.clients[username] = client
 }

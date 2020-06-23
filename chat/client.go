@@ -22,28 +22,28 @@ type Client struct {
 	// this channel is closed when remote client is disconnected
 	done     chan struct{}
 	username string
+	conn     *websocket.Conn
 }
 
-func MakeClient(in chan<- string, username string) *Client {
+func MakeClient(in chan<- string, username string, conn *websocket.Conn) *Client {
 	out := make(chan string, 0)
 	done := make(chan struct{}, 0)
-	return &Client{in: in, out: out, done: done, username: username}
+	return &Client{in: in, out: out, done: done, username: username, conn: conn}
 }
 
-// Handle given connection, starting a client session. Will
-// start reading messages from the client as well as sending
+// Start a client session. Will start reading messages from the client as well as sending
 // messages back
-func (c *Client) handle(conn *websocket.Conn) {
-	go c.readMessages(conn)
-	go c.writeMessages(conn)
+func (c *Client) Start() {
+	go c.readMessages()
+	go c.writeMessages()
 }
 
 // Read messages from the remote client, putting them on the
 // in channel
-func (c *Client) readMessages(conn *websocket.Conn) {
+func (c *Client) readMessages() {
 	for {
 		// todo handle different message types
-		_, msgData, err := conn.ReadMessage()
+		_, msgData, err := c.conn.ReadMessage()
 		if err != nil {
 			log.Println(err)
 			return
@@ -60,11 +60,11 @@ func (c *Client) readMessages(conn *websocket.Conn) {
 }
 
 // Send messages, posted to this client instance to the remote client
-func (c *Client) writeMessages(conn *websocket.Conn) {
+func (c *Client) writeMessages() {
 	for {
 		msg := <-c.out
 		log.Println("Sending back to client", msg)
-		err := conn.WriteMessage(websocket.TextMessage, []byte(msg))
+		err := c.conn.WriteMessage(websocket.TextMessage, []byte(msg))
 		if err != nil {
 			close(c.done)
 			log.Println(err)
