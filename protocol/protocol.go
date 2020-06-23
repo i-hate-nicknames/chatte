@@ -2,13 +2,16 @@ package protocol
 
 import "encoding/json"
 
-type ClientMessage struct {
+// todo: sum types? How do I make a heterogeneous
+// client message
+
+type Message struct {
 	Type    string
 	Payload interface{}
 }
 
-func Unmarshal(data []byte) (*ClientMessage, error) {
-	var result ClientMessage
+func Unmarshal(data []byte) (*Message, error) {
+	var result Message
 	err := json.Unmarshal(data, &result)
 	if err != nil {
 		return nil, err

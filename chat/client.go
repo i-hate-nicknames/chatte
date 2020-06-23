@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"errors"
 	"log"
 
 	"github.com/gorilla/websocket"
@@ -52,26 +53,38 @@ func (c *Client) SendMessage(message string) bool {
 	}
 }
 
+var errMalformedMessage = errors.New("Malformed message")
+
 // Read messages from the remote client and put on the server's incoming
 // messages channel
 func (c *Client) readMessages() {
 	for {
-		// todo handle different message types
-		_, msgData, err := c.conn.ReadMessage()
+		msg, err := c.nextMessage()
+		if err != nil && errors.Is(err, errMalformedMessage) {
+			log.Println("Malformed message:", msg)
+			continue
+		}
 		if err != nil {
 			log.Println(err)
 			close(c.done)
 			return
 		}
-		msg, err := protocol.Unmarshal(msgData)
-		if err != nil {
-			log.Println("Malformed message:", msg)
-			continue
-		}
-
 		log.Println("Received", msg)
 		c.in <- string(msg.Type)
 	}
+}
+
+func (c *Client) nextMessage() (*protocol.Message, error) {
+	_, msgData, err := c.conn.ReadMessage()
+	if err != nil {
+		return nil, err
+	}
+	msg, err := protocol.Unmarshal(msgData)
+	if err != nil {
+		log.Println("Malformed message:", msg)
+		return nil, errMalformedMessage
+	}
+	return msg, nil
 }
 
 // Read messages posted to this client instance and send them to the remote client
