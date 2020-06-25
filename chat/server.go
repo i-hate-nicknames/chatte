@@ -14,12 +14,12 @@ type Server struct {
 	clients map[string]*Client
 	mux     sync.Mutex
 	// incoming messages from all clients
-	in         chan string
+	in         chan *ClientMessage
 	nextUserID int
 }
 
 func MakeServer() *Server {
-	in := make(chan string, 10)
+	in := make(chan *ClientMessage, 10)
 	clients := make(map[string]*Client, 0)
 	return &Server{in: in, clients: clients}
 }
@@ -30,7 +30,7 @@ func (s *Server) Run() {
 	for {
 		message := <-s.in
 		for _, client := range s.clients {
-			ok := client.SendMessage(message)
+			ok := client.SendMessage(string(message.Message.GetType()))
 			if !ok {
 				// todo: mark client for deletion
 			}

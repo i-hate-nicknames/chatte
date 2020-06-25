@@ -17,7 +17,7 @@ import (
 // eventually be read by the server
 type Client struct {
 	// incoming messages from the remote client
-	in chan<- string
+	in chan<- *ClientMessage
 	// outgoing messages that should be sent to remote client
 	out      chan string
 	done     chan struct{}
@@ -25,8 +25,13 @@ type Client struct {
 	conn     *websocket.Conn
 }
 
+type ClientMessage struct {
+	From    string
+	Message protocol.Message
+}
+
 // MakeClient with given server channel, username and connection
-func MakeClient(in chan<- string, username string, conn *websocket.Conn) *Client {
+func MakeClient(in chan<- *ClientMessage, username string, conn *websocket.Conn) *Client {
 	out := make(chan string, 0)
 	done := make(chan struct{}, 0)
 	return &Client{in: in, out: out, username: username, conn: conn, done: done}
@@ -44,6 +49,7 @@ func (c *Client) Start() {
 // the message has been scheduled, not the delivery status. Disconnected client
 // will eventually start to return false upon calling this method
 // This method is supposed to be called from the server goroutine
+// todo: change string to some message type
 func (c *Client) SendMessage(message string) bool {
 	select {
 	case c.out <- message:
@@ -53,15 +59,26 @@ func (c *Client) SendMessage(message string) bool {
 	}
 }
 
-var errMalformedMessage = errors.New("Malformed message")
+type errMalformedMessage struct {
+	err error
+}
+
+func (e *errMalformedMessage) Error() string {
+	return "Malformed message: " + e.err.Error()
+}
+
+func (e *errMalformedMessage) Unwrap() error {
+	return e.err
+}
 
 // Read messages from the remote client and put on the server's incoming
 // messages channel
 func (c *Client) readMessages() {
 	for {
 		msg, err := c.nextMessage()
-		if err != nil && errors.Is(err, errMalformedMessage) {
-			log.Println("Malformed message:", msg)
+		var e *errMalformedMessage
+		if errors.As(err, &e) {
+			log.Println("Malformed message:", msg, "error:", err)
 			continue
 		}
 		if err != nil {
@@ -70,21 +87,22 @@ func (c *Client) readMessages() {
 			return
 		}
 		log.Println("Received", msg)
-		c.in <- string(msg.Type)
+		// pass message to the server goroutine
+		c.in <- msg
 	}
 }
 
-func (c *Client) nextMessage() (*protocol.Message, error) {
+func (c *Client) nextMessage() (*ClientMessage, error) {
 	_, msgData, err := c.conn.ReadMessage()
 	if err != nil {
 		return nil, err
 	}
 	msg, err := protocol.Unmarshal(msgData)
 	if err != nil {
-		log.Println("Malformed message:", msg)
-		return nil, errMalformedMessage
+		return nil, &errMalformedMessage{err: err}
 	}
-	return msg, nil
+	clientMsg := &ClientMessage{From: c.username, Message: msg}
+	return clientMsg, nil
 }
 
 // Read messages posted to this client instance and send them to the remote client

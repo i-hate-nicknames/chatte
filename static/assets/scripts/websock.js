@@ -1,6 +1,6 @@
 const wsAddr = 'ws://localhost:8080/websock';
 const MSG_QUIT = "QUIT";
-const MSG_BROADCAST = "BCAST";
+const MSG_PUBLIC = "PUBLIC";
 
 // wrapper object around chat state and chat dom elements
 let state = {
@@ -53,7 +53,7 @@ function sendMessage() {
     if (!state.initialized || text === "") {
         return;
     }
-    const message = JSON.stringify(makeMessage(MSG_BROADCAST, text));
+    const message = JSON.stringify(makeMessage(MSG_PUBLIC, text));
     console.log("sending " + message);
     state.sock.send(message);
     state.userInputArea.value = "";
