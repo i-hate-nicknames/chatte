@@ -17,7 +17,7 @@ import (
 // eventually be read by the server
 type Client struct {
 	// incoming messages from the remote client
-	in chan<- *ClientMessage
+	in chan<- protocol.Message
 	// outgoing messages that should be sent to remote client
 	out      chan string
 	done     chan struct{}
@@ -25,13 +25,8 @@ type Client struct {
 	conn     *websocket.Conn
 }
 
-type ClientMessage struct {
-	From    string
-	Message protocol.Message
-}
-
 // MakeClient with given server channel, username and connection
-func MakeClient(in chan<- *ClientMessage, username string, conn *websocket.Conn) *Client {
+func MakeClient(in chan<- protocol.Message, username string, conn *websocket.Conn) *Client {
 	out := make(chan string, 0)
 	done := make(chan struct{}, 0)
 	return &Client{in: in, out: out, username: username, conn: conn, done: done}
@@ -86,13 +81,13 @@ func (c *Client) readMessages() {
 			close(c.done)
 			return
 		}
-		log.Println("Received", msg)
+		log.Println("Recieved", msg)
 		// pass message to the server goroutine
 		c.in <- msg
 	}
 }
 
-func (c *Client) nextMessage() (*ClientMessage, error) {
+func (c *Client) nextMessage() (protocol.Message, error) {
 	_, msgData, err := c.conn.ReadMessage()
 	if err != nil {
 		return nil, err
@@ -101,8 +96,7 @@ func (c *Client) nextMessage() (*ClientMessage, error) {
 	if err != nil {
 		return nil, &errMalformedMessage{err: err}
 	}
-	clientMsg := &ClientMessage{From: c.username, Message: msg}
-	return clientMsg, nil
+	return msg, nil
 }
 
 // Read messages posted to this client instance and send them to the remote client

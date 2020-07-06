@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/gorilla/websocket"
+	"github.com/i-hate-nicknames/chatte/protocol"
 )
 
 // Server represents a chat server that holds clients and handles
@@ -14,12 +15,12 @@ type Server struct {
 	clients map[string]*Client
 	mux     sync.Mutex
 	// incoming messages from all clients
-	in         chan *ClientMessage
+	in         chan protocol.Message
 	nextUserID int
 }
 
 func MakeServer() *Server {
-	in := make(chan *ClientMessage, 10)
+	in := make(chan protocol.Message, 10)
 	clients := make(map[string]*Client, 0)
 	return &Server{in: in, clients: clients}
 }
@@ -30,11 +31,15 @@ func (s *Server) Run() {
 	for {
 		message := <-s.in
 		for _, client := range s.clients {
-			ok := client.SendMessage(string(message.Message.GetType()))
-			if !ok {
-				// todo: mark client for deletion
-			}
+			s.handleMessage(client, message)
 		}
+	}
+}
+
+func (s *Server) handleMessage(client *Client, message protocol.Message) {
+	ok := client.SendMessage(string(message.GetType()))
+	if !ok {
+		// todo: mark client for deletion
 	}
 }
 
