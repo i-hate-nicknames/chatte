@@ -31,14 +31,14 @@ func Unmarshal(data []byte) (Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &msg, nil
+		return msg, nil
 	case TypePrivate:
 		var msg PrivateMessage
 		err = json.Unmarshal(data, &msg)
 		if err != nil {
 			return nil, err
 		}
-		return &msg, nil
+		return msg, nil
 	default:
 		return nil, fmt.Errorf("Unknown type")
 	}
@@ -50,9 +50,9 @@ type Message interface {
 
 type QuitMessage struct{}
 
-var quitMessage = &QuitMessage{}
+var quitMessage = QuitMessage{}
 
-func (m *QuitMessage) GetType() MessageType {
+func (m QuitMessage) GetType() MessageType {
 	return TypeQuit
 }
 
@@ -61,7 +61,7 @@ type PrivateMessage struct {
 	Text      string
 }
 
-func (m *PrivateMessage) GetType() MessageType {
+func (m PrivateMessage) GetType() MessageType {
 	return TypePrivate
 }
 
@@ -69,14 +69,14 @@ type PublicMessage struct {
 	Text string
 }
 
-func (m *PublicMessage) GetType() MessageType {
+func (m PublicMessage) GetType() MessageType {
 	return TypePulic
 }
 
 type PingMessage struct{}
 
-var pingMessage = &PingMessage{}
+var pingMessage = PingMessage{}
 
-func (m *PingMessage) GetType() MessageType {
+func (m PingMessage) GetType() MessageType {
 	return TypePing
 }

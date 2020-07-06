@@ -1,6 +1,9 @@
 const wsAddr = 'ws://localhost:8080/websock';
 const MSG_QUIT = "QUIT";
 const MSG_PUBLIC = "PUBLIC";
+const MSG_PING = "PING";
+const MSG_PRIVATE = "PRIVATE";
+const PING_TIMEOUT = 120000;
 
 // wrapper object around chat state and chat dom elements
 let state = {
@@ -8,7 +11,7 @@ let state = {
     sendBtn: null,
     messageLog: null,
     userInputArea: null,
-    initialized: false,
+    running: false,
 };
 
 function makeMessage(type, payload) {
@@ -18,17 +21,19 @@ function makeMessage(type, payload) {
     }
 }
 
-function initSocket(state) {
+function initSocket(state, onOpen) {
     let sock = new WebSocket(wsAddr);
     sock.onopen = () => {
-        state.initialized = true;
+        state.running = true;
         sock.onmessage = (event) => {
             addMessage(event.data)
         }
         sock.onclose = () => {
+            state.running = false;
             console.log("Server closed connection");
             state.sendBtn.setAttribute("disabled", "disabled");
         }
+        onOpen();
     }
     
     state.sock = sock;
@@ -39,7 +44,7 @@ function initDom() {
     state.messageLog = document.getElementById("message-log");
     state.userInputArea = document.getElementById("user-input");
     state.sendBtn.removeAttribute("disabled");
-    state.sendBtn.onclick = sendMessage;
+    state.sendBtn.onclick = sendBroadcastMessage;
 }
 
 function addMessage(text) {
@@ -48,20 +53,35 @@ function addMessage(text) {
     state.messageLog.appendChild(msgElem);
 }
 
-function sendMessage() {
+function sendBroadcastMessage() {
     let text = state.userInputArea.value;
-    if (!state.initialized || text === "") {
+    if (!state.running || text === "") {
         return;
     }
-    const message = JSON.stringify(makeMessage(MSG_PUBLIC, text));
+    sendMessage(MSG_PUBLIC, text);
+    state.userInputArea.value = "";
+}
+
+function sendMessage(type, payload) {
+    const message = JSON.stringify(makeMessage(type, payload));
     console.log("sending " + message);
     state.sock.send(message);
-    state.userInputArea.value = "";
+}
+
+function startPinger() {
+    pinger = () => {
+        if (!state.running) {
+            return;
+        }
+        sendMessage(MSG_PING);
+        setTimeout(pinger, PING_TIMEOUT);
+    };
+    pinger();
 }
 
 function StartApp() {
     initDom();
-    initSocket(state);
+    initSocket(state, startPinger);
 }
 
 StartApp();

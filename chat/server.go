@@ -41,6 +41,17 @@ func (s *Server) handleMessage(client *Client, message protocol.Message) {
 	if !ok {
 		// todo: mark client for deletion
 	}
+	switch message.(type) {
+	case protocol.QuitMessage:
+		// todo: mark client for deletion
+	case protocol.PingMessage:
+		// todo: send pong
+	case protocol.PrivateMessage:
+		// todo: send private message to the receiver
+	case protocol.PublicMessage:
+		// todo: send message to every client
+	}
+
 }
 
 // handle a newly connected client: create new client
