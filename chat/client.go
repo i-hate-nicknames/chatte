@@ -46,7 +46,6 @@ func (c *Client) Start(ctx context.Context) {
 
 func (c *Client) Stop() {
 	c.cancel()
-	c.conn.Close()
 }
 
 // todo: consider send command instead send message, and use send command
@@ -83,12 +82,7 @@ func (e *errMalformedMessage) Unwrap() error {
 // messages channel
 func (c *Client) readMessages() {
 	for {
-		// exit the loop
-		select {
-		case <-c.ctx.Done():
-			return
-		default:
-		}
+
 		msg, err := c.nextMessage()
 		var e *errMalformedMessage
 		if errors.As(err, &e) {
@@ -96,8 +90,15 @@ func (c *Client) readMessages() {
 			continue
 		}
 		if err != nil {
-			log.Println(err)
-			c.cancel()
+			select {
+			case <-c.ctx.Done():
+				// reading from closed connection because client should
+				// be stopped
+				return
+			default:
+				log.Println(err)
+				c.cancel()
+			}
 			return
 		}
 		log.Println("Recieved", msg)
@@ -120,6 +121,7 @@ func (c *Client) nextMessage() (protocol.Message, error) {
 
 // Read messages posted to this client instance and send them to the remote client
 func (c *Client) writeMessages() {
+	defer c.conn.Close()
 	for {
 		select {
 		case msg := <-c.out:

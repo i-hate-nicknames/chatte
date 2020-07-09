@@ -35,26 +35,31 @@ func MakeServer() *Server {
 // Run server, listening to client messages
 // and broadcasting this message to all connected clients
 func (s *Server) Run() {
+	ticker := time.NewTicker(inactiveTimeout)
 	for {
-		message := <-s.in
-		for _, client := range s.clients {
-			s.handleMessage(client, message)
+		select {
+		case message := <-s.in:
+			s.handleMessage(message)
+		case <-ticker.C:
+			for _, client := range s.clients {
+				if time.Since(client.lastActive) > inactiveTimeout {
+					s.toDelete = append(s.toDelete, client.Username)
+					log.Printf("Client %s timed out\n", client.Username)
+				}
+			}
 		}
-		for _, toDelete := range s.toDelete {
-			client := s.clients[toDelete]
+		for _, name := range s.toDelete {
+			log.Println("Disconnecting", name)
+			client := s.clients[name]
 			client.Stop()
-			delete(s.clients, toDelete)
+			delete(s.clients, name)
 		}
+		s.toDelete = s.toDelete[:0]
 	}
 }
 
-func (s *Server) handleMessage(client *Client, message protocol.Message) {
-	if time.Since(client.lastActive) > inactiveTimeout {
-		s.toDelete = append(s.toDelete, client.Username)
-		log.Printf("Client %s disconnected\n", client.Username)
-		return
-	}
-	switch message.(type) {
+func (s *Server) handleMessage(messageUntyped protocol.Message) {
+	switch message := messageUntyped.(type) {
 	case protocol.QuitMessage:
 		// todo: mark client for deletion
 	case protocol.PingMessage:
@@ -62,14 +67,16 @@ func (s *Server) handleMessage(client *Client, message protocol.Message) {
 	case protocol.PrivateMessage:
 		// todo: send private message to the receiver
 	case protocol.PublicMessage:
-		// todo: send message to every client
+		for _, client := range s.clients {
+			ok := client.SendMessage(fmt.Sprintf("%s: %s", client.Username, message.Text))
+			if !ok {
+				s.toDelete = append(s.toDelete, client.Username)
+			}
+		}
 	}
 
 	// todo: remove, sending type for testing for now
-	ok := client.SendMessage(string(message.GetType()))
-	if !ok {
-		// todo: mark client for deletion
-	}
+
 }
 
 // handle a newly connected client: create new client
