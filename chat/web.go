@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"context"
 	"log"
 	"net/http"
 
@@ -15,6 +16,7 @@ var upgrader = websocket.Upgrader{
 
 func StartApp(server *Server) {
 	r := gin.Default()
+	ctx := context.Background()
 	r.LoadHTMLGlob("static/templates/*")
 	r.Static("/assets", "./static/assets")
 	r.GET("/", func(c *gin.Context) {
@@ -30,7 +32,7 @@ func StartApp(server *Server) {
 			log.Println(err)
 			return
 		}
-		go server.handleConn(conn)
+		go server.handleConn(ctx, conn)
 	})
 	r.Run(":8080")
 }

@@ -3,7 +3,7 @@ const MSG_QUIT = "QUIT";
 const MSG_PUBLIC = "PUBLIC";
 const MSG_PING = "PING";
 const MSG_PRIVATE = "PRIVATE";
-const PING_TIMEOUT = 120000;
+const PING_TIMEOUT = 5000;
 
 // wrapper object around chat state and chat dom elements
 let state = {
@@ -76,7 +76,7 @@ function startPinger() {
         sendMessage(MSG_PING);
         setTimeout(pinger, PING_TIMEOUT);
     };
-    pinger();
+    // pinger();
 }
 
 function StartApp() {

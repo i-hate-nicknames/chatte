@@ -1,8 +1,10 @@
 package chat
 
 import (
+	"context"
 	"errors"
 	"log"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/i-hate-nicknames/chatte/protocol"
@@ -19,25 +21,36 @@ type Client struct {
 	// incoming messages from the remote client
 	in chan<- protocol.Message
 	// outgoing messages that should be sent to remote client
-	out      chan string
-	done     chan struct{}
-	username string
-	conn     *websocket.Conn
+	out        chan string
+	ctx        context.Context
+	cancel     context.CancelFunc
+	Username   string
+	conn       *websocket.Conn
+	lastActive time.Time
 }
 
 // MakeClient with given server channel, username and connection
 func MakeClient(in chan<- protocol.Message, username string, conn *websocket.Conn) *Client {
 	out := make(chan string, 0)
-	done := make(chan struct{}, 0)
-	return &Client{in: in, out: out, username: username, conn: conn, done: done}
+	now := time.Now()
+	return &Client{in: in, out: out, Username: username, conn: conn, lastActive: now}
 }
 
 // Start a client session. Will start reading messages from the client as well as sending
 // messages back
-func (c *Client) Start() {
+func (c *Client) Start(ctx context.Context) {
+	c.ctx, c.cancel = context.WithCancel(ctx)
 	go c.readMessages()
 	go c.writeMessages()
 }
+
+func (c *Client) Stop() {
+	c.cancel()
+	c.conn.Close()
+}
+
+// todo: consider send command instead send message, and use send command
+// for all interaction of server and client goroutines, like stopping
 
 // SendMessage sends message to the client. Return running status
 // of the client at the moment of running. The return status signifies that
@@ -49,7 +62,7 @@ func (c *Client) SendMessage(message string) bool {
 	select {
 	case c.out <- message:
 		return true
-	case <-c.done:
+	case <-c.ctx.Done():
 		return false
 	}
 }
@@ -70,6 +83,12 @@ func (e *errMalformedMessage) Unwrap() error {
 // messages channel
 func (c *Client) readMessages() {
 	for {
+		// exit the loop
+		select {
+		case <-c.ctx.Done():
+			return
+		default:
+		}
 		msg, err := c.nextMessage()
 		var e *errMalformedMessage
 		if errors.As(err, &e) {
@@ -78,7 +97,7 @@ func (c *Client) readMessages() {
 		}
 		if err != nil {
 			log.Println(err)
-			close(c.done)
+			c.cancel()
 			return
 		}
 		log.Println("Recieved", msg)
@@ -108,10 +127,10 @@ func (c *Client) writeMessages() {
 			err := c.conn.WriteMessage(websocket.TextMessage, []byte(msg))
 			if err != nil {
 				log.Println(err)
-				close(c.done)
+				c.cancel()
 				return
 			}
-		case <-c.done:
+		case <-c.ctx.Done():
 			return
 		}
 	}
