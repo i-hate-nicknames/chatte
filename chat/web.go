@@ -17,8 +17,8 @@ var upgrader = websocket.Upgrader{
 func StartApp(server *Server) {
 	r := gin.Default()
 	ctx := context.Background()
-	r.LoadHTMLGlob("static/templates/*")
-	r.Static("/assets", "./static/assets")
+	r.LoadHTMLGlob("./dist/*")
+	r.Static("/assets", "./dist")
 	r.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.html", gin.H{
 			"name": "user",
