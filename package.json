@@ -1,0 +1,20 @@
+{
+  "name": "chatte",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "parcel index.html",
+    "develop": "concurrently -r \"npm:type-check:watch\" \"npm:start\"",
+    "build": "npm run type-check && parcel build ./src/index.html --public-url '/'",
+    "type-check": "tsc --noEmit",
+    "type-check:watch": "tsc --noEmit --watch"
+},
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^5.2.0",
+    "parcel-bundler": "^1.12.4",
+    "typescript": "^3.9.6"
+  }
+}
