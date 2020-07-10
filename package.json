@@ -4,9 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "parcel index.html",
+    "start": "parcel ./front/templates/index.html",
     "develop": "concurrently -r \"npm:type-check:watch\" \"npm:start\"",
-    "build": "npm run type-check && parcel build ./src/index.html --public-url '/'",
+    "build": "npm run type-check && parcel build ./front/templates/index.html --public-url '/static/'",
     "type-check": "tsc --noEmit",
     "type-check:watch": "tsc --noEmit --watch"
 },
