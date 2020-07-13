@@ -17,6 +17,9 @@ var upgrader = websocket.Upgrader{
 func StartApp(server *Server) {
 	r := gin.Default()
 	ctx := context.Background()
+	upgrader.CheckOrigin = func(r *http.Request) bool {
+		return true
+	}
 	r.LoadHTMLGlob("./dist/*")
 	r.Static("/assets", "./dist")
 	r.GET("/", func(c *gin.Context) {
