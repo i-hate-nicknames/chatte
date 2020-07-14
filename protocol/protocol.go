@@ -14,46 +14,10 @@ const (
 	TypePrivate MessageType = "PRIVATE"
 )
 
-func Unmarshal(data []byte) (Message, error) {
-	var intermediate struct{ Type MessageType }
-	err := json.Unmarshal(data, &intermediate)
-	if err != nil {
-		return nil, err
-	}
-	switch intermediate.Type {
-	case TypeQuit:
-		return quitMessage, nil
-	case TypePing:
-		return pingMessage, nil
-	case TypePulic:
-		var msg PublicMessage
-		err = json.Unmarshal(data, &msg)
-		if err != nil {
-			return nil, err
-		}
-		return msg, nil
-	case TypePrivate:
-		var msg PrivateMessage
-		err = json.Unmarshal(data, &msg)
-		if err != nil {
-			return nil, err
-		}
-		return msg, nil
-	default:
-		return nil, fmt.Errorf("Unknown type")
-	}
-}
-
-type Message interface {
-	GetType() MessageType
-}
-
-type QuitMessage struct{}
-
-var quitMessage = QuitMessage{}
-
-func (m QuitMessage) GetType() MessageType {
-	return TypeQuit
+type Message struct {
+	Discriminator MessageType
+	Private       *PrivateMessage
+	Public        *PublicMessage
 }
 
 type PrivateMessage struct {
@@ -61,22 +25,34 @@ type PrivateMessage struct {
 	Text      string
 }
 
-func (m PrivateMessage) GetType() MessageType {
-	return TypePrivate
-}
-
 type PublicMessage struct {
 	Text string
 }
 
-func (m PublicMessage) GetType() MessageType {
-	return TypePulic
-}
-
-type PingMessage struct{}
-
-var pingMessage = PingMessage{}
-
-func (m PingMessage) GetType() MessageType {
-	return TypePing
+func Unmarshal(data []byte) (*Message, error) {
+	var intermediate struct{ Type MessageType }
+	err := json.Unmarshal(data, &intermediate)
+	if err != nil {
+		return nil, err
+	}
+	message := &Message{Discriminator: intermediate.Type}
+	switch intermediate.Type {
+	case TypePulic:
+		var inner PublicMessage
+		err = json.Unmarshal(data, &inner)
+		if err != nil {
+			return nil, err
+		}
+		message.Public = &inner
+	case TypePrivate:
+		var inner PrivateMessage
+		err = json.Unmarshal(data, &inner)
+		if err != nil {
+			return nil, err
+		}
+		message.Private = &inner
+	default:
+		return nil, fmt.Errorf("Unknown type")
+	}
+	return message, nil
 }

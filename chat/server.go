@@ -21,12 +21,12 @@ type Server struct {
 	toDelete []string
 	mux      sync.Mutex
 	// incoming messages from all clients
-	in         chan protocol.Message
+	in         chan *protocol.Message
 	nextUserID int
 }
 
 func MakeServer() *Server {
-	in := make(chan protocol.Message, 10)
+	in := make(chan *protocol.Message, 10)
 	clients := make(map[string]*Client, 0)
 	toDelete := make([]string, 0)
 	return &Server{in: in, clients: clients, toDelete: toDelete}
@@ -60,25 +60,25 @@ func (s *Server) Run() {
 	}
 }
 
-func (s *Server) handleMessage(messageUntyped protocol.Message) {
-	switch message := messageUntyped.(type) {
-	case protocol.QuitMessage:
+func (s *Server) handleMessage(message *protocol.Message) {
+	switch message.Discriminator {
+	case protocol.TypeQuit:
 		// todo: mark client for deletion
-	case protocol.PingMessage:
+	case protocol.TypePing:
 		// do nothing, ping is used just for updating client activity state
-	case protocol.PrivateMessage:
+	case protocol.TypePrivate:
 		s.mux.Lock()
-		recipient, ok := s.clients[message.Recipient]
+		recipient, ok := s.clients[message.Private.Recipient]
 		s.mux.Unlock()
 		if !ok {
-			log.Println("Recipient not found", message.Recipient)
+			log.Println("Recipient not found", message.Private.Recipient)
 			return
 		}
-		recipient.SendMessage(fmt.Sprintf("private message: %s", message.Text))
+		recipient.SendMessage(fmt.Sprintf("private message: %s", message.Private.Text))
 
-	case protocol.PublicMessage:
+	case protocol.TypePulic:
 		for _, client := range s.clients {
-			ok := client.SendMessage(fmt.Sprintf("%s: %s", client.Username, message.Text))
+			ok := client.SendMessage(fmt.Sprintf("%s: %s", client.Username, message.Public.Text))
 			if !ok {
 				s.toDelete = append(s.toDelete, client.Username)
 			}

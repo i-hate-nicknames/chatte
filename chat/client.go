@@ -19,7 +19,7 @@ import (
 // eventually be read by the server
 type Client struct {
 	// incoming messages from the remote client
-	in chan<- protocol.Message
+	in chan<- *protocol.Message
 	// outgoing messages that should be sent to remote client
 	out        chan string
 	ctx        context.Context
@@ -30,7 +30,7 @@ type Client struct {
 }
 
 // MakeClient with given server channel, username and connection
-func MakeClient(in chan<- protocol.Message, username string, conn *websocket.Conn) *Client {
+func MakeClient(in chan<- *protocol.Message, username string, conn *websocket.Conn) *Client {
 	out := make(chan string, 0)
 	now := time.Now()
 	return &Client{in: in, out: out, Username: username, conn: conn, lastActive: now}
@@ -108,7 +108,7 @@ func (c *Client) readMessages() {
 	}
 }
 
-func (c *Client) nextMessage() (protocol.Message, error) {
+func (c *Client) nextMessage() (*protocol.Message, error) {
 	_, msgData, err := c.conn.ReadMessage()
 	if err != nil {
 		return nil, err
