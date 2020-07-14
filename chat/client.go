@@ -104,6 +104,7 @@ func (c *Client) readMessages() {
 		log.Println("Recieved", msg)
 		// pass message to the server goroutine
 		c.in <- msg
+		c.lastActive = time.Now()
 	}
 }
 

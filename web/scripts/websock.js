@@ -58,7 +58,8 @@ function sendBroadcastMessage() {
     if (!state.running || text === "") {
         return;
     }
-    sendMessage(MSG_PUBLIC, text);
+    // sendMessage(MSG_PUBLIC, text);
+    state.sock.send(JSON.stringify({"type": MSG_PRIVATE, "recipient": "User2", "text": text}));
     state.userInputArea.value = "";
 }
 

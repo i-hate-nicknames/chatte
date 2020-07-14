@@ -57,7 +57,7 @@ func (m QuitMessage) GetType() MessageType {
 }
 
 type PrivateMessage struct {
-	Recepient string
+	Recipient string
 	Text      string
 }
 
