@@ -43,11 +43,13 @@ func (s *Server) Run() {
 		case <-ticker.C:
 			for _, client := range s.clients {
 				if time.Since(client.lastActive) > inactiveTimeout {
-					s.toDelete = append(s.toDelete, client.Username)
 					log.Printf("Client %s timed out\n", client.Username)
+					client.Stop()
 				}
 			}
 		}
+
+		// todo: clients are stopped, just remove them and get rid of toDelete
 		for _, name := range s.toDelete {
 			s.mux.Lock()
 			log.Println("Disconnecting", name)
@@ -63,7 +65,7 @@ func (s *Server) Run() {
 func (s *Server) handleMessage(message *protocol.Message) {
 	sender, ok := s.getClient(message.Sender)
 	if !ok {
-		log.Println("Message sender not found, message: %v", message)
+		log.Printf("Message sender not found, message: %v\n", message)
 		return
 	}
 	switch message.Discriminator {
@@ -77,14 +79,11 @@ func (s *Server) handleMessage(message *protocol.Message) {
 			log.Println("Recipient not found", message.Private.Recipient)
 			return
 		}
-		recipient.SendMessage(fmt.Sprintf("(private) %s: %s", sender.Username, message.Private.Text))
+		recipient.Private(sender.Username, message.Private.Text, message.Time)
 
 	case protocol.TypePulic:
 		for _, client := range s.clients {
-			ok := client.SendMessage(fmt.Sprintf("%s: %s", sender.Username, message.Public.Text))
-			if !ok {
-				s.toDelete = append(s.toDelete, client.Username)
-			}
+			client.Public(sender.Username, message.Public.Text, message.Time)
 		}
 	}
 }
