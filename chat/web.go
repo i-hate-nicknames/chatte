@@ -23,7 +23,6 @@ func StartApp(server *Server) {
 	ctx := context.Background()
 	upgrader.CheckOrigin = func(req *http.Request) bool {
 		reqOrigin := req.Header.Get("Origin")
-		log.Println("Connected origin", reqOrigin)
 		if reqOrigin == "" {
 			return false
 		}

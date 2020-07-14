@@ -11,15 +11,15 @@ import (
 	"github.com/i-hate-nicknames/chatte/protocol"
 )
 
-const inactiveTimeout = 200 * time.Second
+const inactiveTimeout = 3 * time.Second
+const cleanupTime = 1 * time.Second
 
 // Server represents a chat server that holds clients and handles
 // all client interaction
 type Server struct {
 	// mapping of username to client structures
-	clients  map[string]*Client
-	toDelete []string
-	mux      sync.Mutex
+	clients map[string]*Client
+	mux     sync.Mutex
 	// incoming messages from all clients
 	in         chan *protocol.Message
 	nextUserID int
@@ -28,37 +28,34 @@ type Server struct {
 func MakeServer() *Server {
 	in := make(chan *protocol.Message, 10)
 	clients := make(map[string]*Client, 0)
-	toDelete := make([]string, 0)
-	return &Server{in: in, clients: clients, toDelete: toDelete}
+	return &Server{in: in, clients: clients}
 }
 
 // Run server, listening to client messages
 // and broadcasting this message to all connected clients
 func (s *Server) Run() {
-	ticker := time.NewTicker(inactiveTimeout)
+	ticker := time.NewTicker(cleanupTime)
 	for {
 		select {
 		case message := <-s.in:
 			s.handleMessage(message)
 		case <-ticker.C:
+			s.mux.Lock()
 			for _, client := range s.clients {
+				// delete all clients that are not running
+				if !client.IsRunning() {
+					log.Println("Cleanup, removing", client.Username)
+					delete(s.clients, client.Username)
+					continue
+				}
+				// send stop command to goroutine with timed out client
 				if time.Since(client.lastActive) > inactiveTimeout {
 					log.Printf("Client %s timed out\n", client.Username)
 					client.Stop()
 				}
 			}
-		}
-
-		// todo: clients are stopped, just remove them and get rid of toDelete
-		for _, name := range s.toDelete {
-			s.mux.Lock()
-			log.Println("Disconnecting", name)
-			client := s.clients[name]
-			client.Stop()
-			delete(s.clients, name)
 			s.mux.Unlock()
 		}
-		s.toDelete = s.toDelete[:0]
 	}
 }
 
@@ -105,4 +102,5 @@ func (s *Server) handleConn(ctx context.Context, conn *websocket.Conn) {
 	client := MakeClient(s.in, username, conn)
 	client.Start(ctx)
 	s.clients[username] = client
+	log.Println("Connected new client:", username)
 }
