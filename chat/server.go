@@ -49,10 +49,12 @@ func (s *Server) Run() {
 			}
 		}
 		for _, name := range s.toDelete {
+			s.mux.Lock()
 			log.Println("Disconnecting", name)
 			client := s.clients[name]
 			client.Stop()
 			delete(s.clients, name)
+			s.mux.Unlock()
 		}
 		s.toDelete = s.toDelete[:0]
 	}
@@ -65,7 +67,15 @@ func (s *Server) handleMessage(messageUntyped protocol.Message) {
 	case protocol.PingMessage:
 		// do nothing, ping is used just for updating client activity state
 	case protocol.PrivateMessage:
-		// todo: send private message to the receiver
+		s.mux.Lock()
+		recipient, ok := s.clients[message.Recipient]
+		s.mux.Unlock()
+		if !ok {
+			log.Println("Recipient not found", message.Recipient)
+			return
+		}
+		recipient.SendMessage(fmt.Sprintf("private message: %s", message.Text))
+
 	case protocol.PublicMessage:
 		for _, client := range s.clients {
 			ok := client.SendMessage(fmt.Sprintf("%s: %s", client.Username, message.Text))
