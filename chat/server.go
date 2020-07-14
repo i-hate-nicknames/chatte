@@ -11,7 +11,7 @@ import (
 	"github.com/i-hate-nicknames/chatte/protocol"
 )
 
-const inactiveTimeout = 3 * time.Second
+const inactiveTimeout = 200 * time.Second
 
 // Server represents a chat server that holds clients and handles
 // all client interaction

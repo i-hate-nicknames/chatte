@@ -14,9 +14,26 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
+// quick hack to allow different origins when running both parcel dev server
+// and go web server
+var allowedHosts = []string{"http://localhost:1234", "http://localhost:8080"}
+
 func StartApp(server *Server) {
 	r := gin.Default()
 	ctx := context.Background()
+	upgrader.CheckOrigin = func(req *http.Request) bool {
+		reqOrigin := req.Header.Get("Origin")
+		log.Println("Connected origin", reqOrigin)
+		if reqOrigin == "" {
+			return false
+		}
+		for _, host := range allowedHosts {
+			if host == reqOrigin {
+				return true
+			}
+		}
+		return false
+	}
 	r.LoadHTMLGlob("./dist/*")
 	r.Static("/assets", "./dist")
 	r.GET("/", func(c *gin.Context) {
