@@ -83,10 +83,10 @@ func (e *errMalformedMessage) Unwrap() error {
 func (c *Client) readMessages() {
 	for {
 
-		msg, err := c.nextMessage()
+		message, err := c.nextMessage()
 		var e *errMalformedMessage
 		if errors.As(err, &e) {
-			log.Println("Malformed message:", msg, "error:", err)
+			log.Println("Malformed message:", message, "error:", err)
 			continue
 		}
 		if err != nil {
@@ -101,23 +101,25 @@ func (c *Client) readMessages() {
 			}
 			return
 		}
-		log.Println("Recieved", msg)
+		message.Time = time.Now()
+		message.Sender = c.Username
+		log.Println("Recieved", message)
 		// pass message to the server goroutine
-		c.in <- msg
-		c.lastActive = time.Now()
+		c.in <- message
+		c.lastActive = message.Time
 	}
 }
 
 func (c *Client) nextMessage() (*protocol.Message, error) {
-	_, msgData, err := c.conn.ReadMessage()
+	_, messageData, err := c.conn.ReadMessage()
 	if err != nil {
 		return nil, err
 	}
-	msg, err := protocol.Unmarshal(msgData)
+	message, err := protocol.Unmarshal(messageData)
 	if err != nil {
 		return nil, &errMalformedMessage{err: err}
 	}
-	return msg, nil
+	return message, nil
 }
 
 // Read messages posted to this client instance and send them to the remote client
@@ -125,9 +127,9 @@ func (c *Client) writeMessages() {
 	defer c.conn.Close()
 	for {
 		select {
-		case msg := <-c.out:
-			log.Println("Sending back to client", msg)
-			err := c.conn.WriteMessage(websocket.TextMessage, []byte(msg))
+		case message := <-c.out:
+			log.Println("Sending back to client", message)
+			err := c.conn.WriteMessage(websocket.TextMessage, []byte(message))
 			if err != nil {
 				log.Println(err)
 				c.cancel()

@@ -3,6 +3,7 @@ package protocol
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 )
 
 type MessageType string
@@ -18,6 +19,8 @@ type Message struct {
 	Discriminator MessageType
 	Private       *PrivateMessage
 	Public        *PublicMessage
+	Sender        string
+	Time          time.Time
 }
 
 type PrivateMessage struct {

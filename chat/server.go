@@ -61,32 +61,39 @@ func (s *Server) Run() {
 }
 
 func (s *Server) handleMessage(message *protocol.Message) {
+	sender, ok := s.getClient(message.Sender)
+	if !ok {
+		log.Println("Message sender not found, message: %v", message)
+		return
+	}
 	switch message.Discriminator {
 	case protocol.TypeQuit:
 		// todo: mark client for deletion
 	case protocol.TypePing:
 		// do nothing, ping is used just for updating client activity state
 	case protocol.TypePrivate:
-		s.mux.Lock()
-		recipient, ok := s.clients[message.Private.Recipient]
-		s.mux.Unlock()
+		recipient, ok := s.getClient(message.Private.Recipient)
 		if !ok {
 			log.Println("Recipient not found", message.Private.Recipient)
 			return
 		}
-		recipient.SendMessage(fmt.Sprintf("private message: %s", message.Private.Text))
+		recipient.SendMessage(fmt.Sprintf("(private) %s: %s", sender.Username, message.Private.Text))
 
 	case protocol.TypePulic:
 		for _, client := range s.clients {
-			ok := client.SendMessage(fmt.Sprintf("%s: %s", client.Username, message.Public.Text))
+			ok := client.SendMessage(fmt.Sprintf("%s: %s", sender.Username, message.Public.Text))
 			if !ok {
 				s.toDelete = append(s.toDelete, client.Username)
 			}
 		}
 	}
+}
 
-	// todo: remove, sending type for testing for now
-
+func (s *Server) getClient(username string) (*Client, bool) {
+	s.mux.Lock()
+	defer s.mux.Unlock()
+	client, ok := s.clients[username]
+	return client, ok
 }
 
 // handle a newly connected client: create new client
