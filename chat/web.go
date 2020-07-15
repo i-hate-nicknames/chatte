@@ -18,6 +18,9 @@ var upgrader = websocket.Upgrader{
 // and go web server
 var allowedHosts = []string{"http://localhost:1234", "http://localhost:8080"}
 
+// StartApp runs a web server application with given chat server
+// Server will serve html page and also provide a websocket endpoint
+// that will connect browsers with the chat server
 func StartApp(server *Server) {
 	r := gin.Default()
 	ctx := context.Background()
