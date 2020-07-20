@@ -11,7 +11,7 @@ type MessageType string
 const (
 	TypeQuit    MessageType = "QUIT"
 	TypePing    MessageType = "PING"
-	TypePulic   MessageType = "PUBLIC"
+	TypePublic  MessageType = "PUBLIC"
 	TypePrivate MessageType = "PRIVATE"
 )
 
@@ -40,7 +40,7 @@ func Unmarshal(data []byte) (*Message, error) {
 	}
 	message := &Message{Discriminator: intermediate.Type}
 	switch intermediate.Type {
-	case TypePulic:
+	case TypePublic:
 		var inner PublicMessage
 		err = json.Unmarshal(data, &inner)
 		if err != nil {

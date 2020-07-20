@@ -84,7 +84,7 @@ func (s *Server) handleMessage(message *protocol.Message) {
 		}
 		recipient.Private(sender.Username, message.Private.Text, message.Time)
 
-	case protocol.TypePulic:
+	case protocol.TypePublic:
 		for _, client := range s.clients {
 			client.Public(sender.Username, message.Public.Text, message.Time)
 		}
